@@ -1,0 +1,95 @@
+:root {
+  --font-primary: var(--font-geist-sans);
+
+  --text-xs: 10.8px;
+  --text-sm: 11.7px;
+  --text-base: 12.6px;
+  --text-md: 13.5px;
+  --text-lg: 14.4px;
+  --text-xl: 16.2px;
+  --text-2xl: 18px;
+  --text-3xl: 21.6px;
+  --text-4xl: 25.2px;
+
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --lh-tight: 1.2;
+  --lh-normal: 1.5;
+  --lh-loose: 1.7;
+}
+
+.typo {
+  color: #0f172a;
+  font-family: var(--font-primary);
+}
+
+.typo-h1 {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  line-height: var(--lh-tight);
+}
+
+.typo-h2 {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-semibold);
+}
+
+.typo-h3 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+}
+
+.typo-h4 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-medium);
+}
+
+.typo-body-lg {
+  font-size: var(--text-lg);
+  font-weight: var(--font-normal);
+}
+
+.typo-body {
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+}
+
+.typo-body-sm {
+  color: #475569;
+  font-size: var(--text-sm);
+}
+
+.typo-caption {
+  color: #64748b;
+  font-size: var(--text-xs) !important;
+}
+
+.typo-muted {
+  color: #64748b;
+}
+
+.typo-primary {
+  color: #ff4b0b;
+}
+
+.typo-center {
+  text-align: center;
+}
+
+.typo-right {
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .typo-h1 {
+    font-size: 19.8px;
+  }
+
+  .typo-h2 {
+    font-size: 18px;
+  }
+}
