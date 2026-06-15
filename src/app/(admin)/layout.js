@@ -10,7 +10,7 @@ import {
   getRedirectPathByUser,
   getStoredUser,
   hasRequiredAccess,
-  getRoleBanner,
+  ROLE_BANNER_CONFIG,
 } from "@/utils/roleRedirect";
 import { TopbarProvider, useTopbarConfig } from "@/contexts/TopbarContext";
 
@@ -20,26 +20,21 @@ const PageContent = memo(function PageContent({ children }) {
 
 function TopbarRenderer({ sidebarCollapsed }) {
   const config = useTopbarConfig();
-  return <AdminTopbar {...config} sidebarCollapsed={sidebarCollapsed} />;
-}
-
-function RoleBanner() {
   const user = getStoredUser();
-  const banner = getRoleBanner(user);
+  const deptLabel = user?.subRole ? ROLE_BANNER_CONFIG[user.subRole]?.label : "";
 
-  if (!banner) return null;
+  const prefixedTitle = deptLabel && config.title
+    ? `${deptLabel.split(" ")[0]} ${config.title}`
+    : config.title;
 
   return (
-    <div
-      className="fixed left-0 right-0 top-0 z-[60] flex h-10 items-center justify-center text-sm font-bold tracking-wider"
-      style={{ backgroundColor: banner.bg, color: banner.text }}
-    >
-      {banner.label}
-    </div>
+    <AdminTopbar
+      {...config}
+      title={prefixedTitle}
+      sidebarCollapsed={sidebarCollapsed}
+    />
   );
 }
-
-const BANNER_HEIGHT = 40;
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -83,15 +78,13 @@ export default function AdminLayout({ children }) {
   return (
     <TopbarProvider>
       <div className="min-h-screen bg-[#faf9fc]">
-        <RoleBanner />
         <AdminSidebar
           collapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
-          topOffset={BANNER_HEIGHT}
         />
 
         <main
-          className={`min-h-screen pt-10 transition-all duration-300 ${
+          className={`min-h-screen transition-all duration-300 ${
             sidebarCollapsed ? "lg:pl-[72px]" : "lg:pl-[220px]"
           } max-lg:pl-0`}
         >
