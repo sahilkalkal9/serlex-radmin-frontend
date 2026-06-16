@@ -109,7 +109,7 @@ const formatMoney = (value) => {
 };
 
 function userName(user) {
-  return user?.name || user?.username || user?.email?.split("@")?.[0] || "Admin User";
+  return user?.name || user?.username || user?.email?.split("@")?.[0] ||     "Admin User";
 }
 
 const roleLabels = {

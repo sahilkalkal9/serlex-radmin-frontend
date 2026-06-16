@@ -16,7 +16,7 @@ function formatShortDate(value) {
 export default function UserMenu({
   userName,
   userInitials,
-  userRole = "Administrator",
+  userRole = "Admin",
   appliedFromDate,
   appliedToDate,
   onDashboard,

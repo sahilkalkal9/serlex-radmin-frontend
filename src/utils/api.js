@@ -1,5 +1,5 @@
 import axios from "axios";
-import { initSocket } from "./socket";
+import { initSocket, disconnectSocket } from "./socket";
 
 const api = axios.create({
 
@@ -32,6 +32,7 @@ api.interceptors.response.use(
     if (typeof window !== "undefined" && error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
+      disconnectSocket();
       // deviceId intentionally preserved
       window.location.href = "/login";
     }

@@ -21,6 +21,7 @@ import {
 import api from "@/utils/api";
 import { useSetTopbar } from "@/contexts/TopbarContext";
 import { getStoredUser, ROLE_BANNER_CONFIG } from "@/utils/roleRedirect";
+import { onSocketEvent } from "@/utils/socket";
 
 const getRoleLabel = (subRole) => {
   const banner = ROLE_BANNER_CONFIG[subRole];
@@ -204,6 +205,12 @@ export default function UserAllocationPage() {
     setCurrentUser(user);
     setRoleLabel(getRoleLabel(user.subRole));
     fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const unsub1 = onSocketEvent("allocation:changed", () => fetchData());
+    const unsub2 = onSocketEvent("target:updated", () => fetchData());
+    return () => { unsub1(); unsub2(); };
   }, [fetchData]);
 
   const sortedManagers = useMemo(() => {

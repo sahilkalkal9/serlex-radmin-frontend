@@ -56,12 +56,13 @@ export default function UserManagementPage() {
   const [savingWh, setSavingWh] = useState(false);
 
   const [activeTab, setActiveTab] = useState("members");
+  const [roleTab, setRoleTab] = useState("all");
 
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const { data } = await api.get("/admin/users");
-      setUsers((data?.users || []).filter((u) => !["admin", "superadmin"].includes(u.role)));
+      setUsers((data?.users || []).filter((u) => !["admin", "admin", "radmin"].includes(u.role)));
     } catch (error) {
       console.error("Admin users fetch error:", error);
       setUsers([]);
@@ -95,21 +96,32 @@ export default function UserManagementPage() {
       const matchesDepartment = department === "all" || user.department === department;
       const matchesStatus = status === "all" || user.status === status;
       const matchesTab = activeTab === "past" ? user.status === "inactive" : user.status !== "inactive";
-      return matchesSearch && matchesDepartment && matchesStatus && matchesTab;
+      const matchesRoleTab =
+        roleTab === "all" ||
+        (roleTab === "executives" && ["sales_user", "purchase_user", "ppc_user"].includes(user.role)) ||
+        (roleTab === "managers" && user.role === "subadmin") ||
+        (roleTab === "admins" && user.role === "radmin");
+      return matchesSearch && matchesDepartment && matchesStatus && matchesTab && matchesRoleTab;
     });
-  }, [department, search, status, users, activeTab]);
+  }, [department, search, status, users, activeTab, roleTab]);
 
   const stats = useMemo(
-    () => ({
-      total: users.length,
-      active: users.filter((user) => user.status !== "inactive").length,
-      inactive: users.filter((user) => user.status === "inactive").length,
-      approved: users.filter((user) => user.status === "approved").length,
-      pending: users.filter((user) => user.status === "pending").length,
-      adminApproved: users.filter((user) => user.isApprovedByAdmin).length,
-      adminPending: users.filter((user) => !user.isApprovedByAdmin && !["superadmin", "admin", "radmin"].includes(user.role)).length,
-    }),
-    [users]
+    () => {
+      const basePool = users.filter((user) => activeTab === "past" ? user.status === "inactive" : user.status !== "inactive");
+      return {
+        total: users.length,
+        active: users.filter((user) => user.status !== "inactive").length,
+        inactive: users.filter((user) => user.status === "inactive").length,
+        approved: users.filter((user) => user.status === "approved").length,
+        pending: users.filter((user) => user.status === "pending").length,
+        adminApproved: users.filter((user) => user.isApprovedByAdmin).length,
+        adminPending: users.filter((user) => !user.isApprovedByAdmin && !["admin", "admin", "radmin"].includes(user.role)).length,
+        executives: basePool.filter((u) => ["sales_user", "purchase_user", "ppc_user"].includes(u.role)).length,
+        managers: basePool.filter((u) => u.role === "subadmin").length,
+        admins: 0,
+      };
+    },
+    [users, activeTab]
   );
 
   const updateStatus = async (userId, nextStatus) => {
@@ -186,18 +198,18 @@ export default function UserManagementPage() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setActiveTab("members")}
+            onClick={() => { setActiveTab("members"); setRoleTab("all"); }}
             className={`rounded-[8px] px-5 py-2.5 text-[12px] font-bold transition ${
               activeTab === "members"
                 ? "bg-[#ff4b0b] text-white shadow-[0_4px_12px_rgba(255,75,11,0.25)]"
                 : "border border-[#e8ebf2] bg-white text-[#7580a5] hover:bg-[#fbfbfd]"
             }`}
           >
-            Members ({stats.active})
+            Active Members ({stats.active})
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab("past")}
+            onClick={() => { setActiveTab("past"); setRoleTab("all"); }}
             className={`rounded-[8px] px-5 py-2.5 text-[12px] font-bold transition ${
               activeTab === "past"
                 ? "bg-[#ff4b0b] text-white shadow-[0_4px_12px_rgba(255,75,11,0.25)]"
@@ -206,6 +218,27 @@ export default function UserManagementPage() {
           >
             Past Members ({stats.inactive})
           </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {[
+            { key: "all", label: "All" },
+            { key: "executives", label: "Executives" },
+            { key: "managers", label: "Managers" },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setRoleTab(key)}
+              className={`rounded-[6px] px-4 py-2 text-[11px] font-bold transition ${
+                roleTab === key
+                  ? "bg-[#1d2540] text-white shadow-[0_3px_10px_rgba(29,37,64,0.2)]"
+                  : "border border-[#e8ebf2] bg-white text-[#7580a5] hover:bg-[#fbfbfd]"
+              }`}
+            >
+              {label} {key !== "all" ? `(${stats[key]})` : ""}
+            </button>
+          ))}
         </div>
 
         <div className="rounded-[8px] border border-[#e8ebf2] bg-white p-4 shadow-[0_10px_22px_rgba(15,23,42,0.03)]">
@@ -355,7 +388,7 @@ function UserAvatar({ user }) {
 }
 
 function AdminApprovalBadge({ approved, role }) {
-  if (["superadmin", "admin", "radmin"].includes(role)) {
+  if (["admin", "admin", "radmin"].includes(role)) {
     return <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold bg-[#eaf3ff] text-[#1677ff]">Self</span>;
   }
   return (
@@ -367,7 +400,7 @@ function AdminApprovalBadge({ approved, role }) {
 
 function ActionButtons({ user, currentUser, onUpdate, updating, onClearDevice }) {
   const isSelf = String(currentUser?.id || currentUser?._id || "") === String(user._id);
-  if (isSelf || ["superadmin", "admin", "radmin"].includes(user.role)) return null;
+  if (isSelf || ["admin", "admin", "radmin"].includes(user.role)) return null;
 
   const isInactive = user.status === "inactive";
 

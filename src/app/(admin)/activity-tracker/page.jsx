@@ -346,10 +346,10 @@ export default function AdminActivityTrackerPage() {
   }, [meetings, currentUser]);
 
   const userDisplayName =
-    currentUser?.name || currentUser?.username || currentUser?.email || "Admin User";
+    currentUser?.name || currentUser?.username || currentUser?.email ||     "Admin User";
   const userDisplayRole = formatLabel(
     currentUser?.designation || currentUser?.role,
-    "Administrator"
+    "Admin"
   );
   const userInitial = userDisplayName.slice(0, 1).toUpperCase() || "A";
 

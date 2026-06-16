@@ -27,7 +27,7 @@ const emptyForm = {
   mobileNumber: "",
   email: "",
   department: "Administration",
-  designation: "Administrator",
+  designation: "Admin",
   managerName: "",
   territory: "",
   joiningDate: "",
@@ -168,7 +168,7 @@ export default function AdminSignupPage() {
                 variant="body-lg"
                 className="mt-4 !text-[18px] !leading-8 !text-[#5d667c]"
               >
-                Set up an admin account for the Serlex operations panel.
+                Set up a admin account for the Serlex operations panel.
               </Typo>
             </div>
 

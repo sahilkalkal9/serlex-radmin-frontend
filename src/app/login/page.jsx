@@ -146,7 +146,7 @@ export default function AdminLoginPage() {
                     variant="body-sm"
                     className="!font-bold !text-[#071033]"
                   >
-                    Restricted access
+                    Admin access only
                   </Typo>
                   <Typo
                     variant="caption"
@@ -248,7 +248,7 @@ export default function AdminLoginPage() {
                   variant="body-sm"
                   className="!font-medium !text-[#626a82]"
                 >
-                  Need an admin account?{" "}
+                    Need a admin account?{" "}
                   <Link
                     href="/signup"
                     className="font-bold text-[#ff4b0b] hover:underline"
