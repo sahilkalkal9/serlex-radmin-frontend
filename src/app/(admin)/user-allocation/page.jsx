@@ -137,6 +137,8 @@ export default function UserAllocationPage() {
   });
   const [savingTarget, setSavingTarget] = useState(false);
 
+  const [adminTarget, setAdminTarget] = useState(null);
+
   const [showPoModal, setShowPoModal] = useState(false);
   const [poList, setPoList] = useState([]);
   const [loadingPos, setLoadingPos] = useState(false);
@@ -190,6 +192,19 @@ export default function UserAllocationPage() {
 
       setManagers(managersRes?.data?.managers || []);
       setUnallocatedUsers(usersRes?.data?.users || []);
+
+      const storedUser = getStoredUser();
+      if (storedUser?.id) {
+        try {
+          const targetRes = await api.get(`/admin/admin-targets/${storedUser.id}`);
+          const targets = targetRes?.data?.targets || [];
+          const match = targets.find((t) => t.period === selectedPeriod && t.periodKey === currentPeriodKey);
+          setAdminTarget(match || null);
+        } catch {
+          setAdminTarget(null);
+        }
+      }
+
       setErrorMessage("");
     } catch (error) {
       console.error("Fetch error:", error);
@@ -219,6 +234,34 @@ export default function UserAllocationPage() {
       if (a._id > b._id) return -1;
       return 0;
     });
+  }, [managers]);
+
+  const summary = useMemo(() => {
+    let totalDistributed = 0;
+    let totalAchieved = 0;
+    let totalSelfTarget = 0;
+    let totalTeamTarget = 0;
+    let totalPersonalAchieved = 0;
+    let totalTeamAchieved = 0;
+    managers.forEach((mgr) => {
+      if (mgr.target) {
+        totalDistributed += Number(mgr.target.targetAmount || 0);
+        totalSelfTarget += Number(mgr.target.selfTarget || 0);
+        totalTeamTarget += Number(mgr.target.teamTarget || 0);
+        totalAchieved += Number(mgr.target.achievedAmount || 0);
+        totalPersonalAchieved += Number(mgr.target.personalAchieved || 0);
+        totalTeamAchieved += Number(mgr.target.teamAchieved || 0);
+      }
+    });
+    return {
+      totalDistributed,
+      totalAchieved,
+      totalSelfTarget,
+      totalTeamTarget,
+      totalPersonalAchieved,
+      totalTeamAchieved,
+      achievementPercent: totalDistributed > 0 ? Math.min(Math.round((totalAchieved / totalDistributed) * 100), 100) : 0,
+    };
   }, [managers]);
 
   const sortedUnallocatedUsers = useMemo(() => {
@@ -440,6 +483,82 @@ export default function UserAllocationPage() {
               Key: {currentPeriodKey}
             </span>
           </div>
+        </div>
+
+        {/* Summary Card */}
+        <div className="rounded-[20px] border-2 border-[#ff5a1f] bg-gradient-to-r from-[#fff5ef] to-[#fff0e8] p-5 shadow-[0_10px_24px_rgba(255,90,31,0.10)]">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="h-5 w-5 text-[#ff5a1f]" />
+            <span className="text-[13px] font-bold text-[#ff5a1f]">{roleLabel.dept} Target Flow</span>
+            <span className="ml-auto rounded-full bg-[#fff0e8] px-2.5 py-0.5 text-[10px] font-bold text-[#ff5a1f]">
+              {selectedPeriod} • {currentPeriodKey}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="rounded-[14px] bg-white/80 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#8a8390]">
+                Target by Superadmin
+              </p>
+              <p className="mt-1 text-[24px] font-extrabold text-[#1f2340] leading-tight">
+                {formatMoneyShort(adminTarget?.targetAmount || 0)}
+              </p>
+              {adminTarget?.remarks && (
+                <p className="mt-1 text-[10px] font-medium text-[#7d7782] truncate">{adminTarget.remarks}</p>
+              )}
+              {!adminTarget && (
+                <p className="mt-1 text-[10px] font-medium italic text-[#9aa1b5]">Not set yet</p>
+              )}
+            </div>
+
+            <div className="rounded-[14px] bg-white/80 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#8a8390]">
+                Distributed to Managers
+              </p>
+              <p className="mt-1 text-[24px] font-extrabold text-[#2563eb] leading-tight">
+                {formatMoneyShort(summary.totalDistributed)}
+              </p>
+              <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[#7d7782]">
+                <span>Self: {formatMoneyShort(summary.totalSelfTarget)}</span>
+                <span className="text-[#c5c0c8]">|</span>
+                <span>Team: {formatMoneyShort(summary.totalTeamTarget)}</span>
+              </div>
+              <p className="mt-0.5 text-[10px] font-medium text-[#7d7782]">
+                Across {managers.length} manager{managers.length !== 1 ? "s" : ""}
+              </p>
+            </div>
+
+            <div className="rounded-[14px] bg-white/80 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#8a8390]">
+                Total Achieved
+              </p>
+              <p className="mt-1 text-[24px] font-extrabold text-[#2ea44f] leading-tight">
+                {formatMoneyShort(summary.totalAchieved)}
+              </p>
+              <div className="mt-1.5 flex items-center gap-2 text-[10px] text-[#7d7782]">
+                <span>Personal: {formatMoneyShort(summary.totalPersonalAchieved)}</span>
+                <span className="text-[#c5c0c8]">|</span>
+                <span>Team: {formatMoneyShort(summary.totalTeamAchieved)}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="h-2 flex-1 overflow-hidden rounded-full bg-[#f0e8e2]">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-[#2ea44f] to-[#3cc560] transition-all duration-700"
+                    style={{ width: `${Math.max(summary.achievementPercent, 2)}%` }}
+                  />
+                </div>
+                <span className="text-[12px] font-extrabold text-[#2ea44f]">{summary.achievementPercent}%</span>
+              </div>
+            </div>
+          </div>
+
+          {adminTarget?.targetAmount > 0 && (
+            <div className="mt-3 flex items-center gap-3 text-[11px] font-medium text-[#7d7782]">
+              <span>Remaining to distribute: {formatMoneyShort(Math.max((adminTarget.targetAmount || 0) - summary.totalDistributed, 0))}</span>
+              <span className="text-[#c5c0c8]">|</span>
+              <span>Pending achievement: {formatMoneyShort(Math.max(summary.totalDistributed - summary.totalAchieved, 0))}</span>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
