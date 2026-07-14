@@ -286,7 +286,6 @@ export default function PlanningPage() {
 
   const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [googleLoading, setGoogleLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
 
@@ -300,11 +299,6 @@ export default function PlanningPage() {
   const [selectedTeamEmails, setSelectedTeamEmails] = useState([]);
   const [teamUsersLoading, setTeamUsersLoading] = useState(false);
 
-  const [googleStatus, setGoogleStatus] = useState({
-    connected: false,
-    email: "",
-  });
-
   const [formData, setFormData] = useState(initialFormData);
 
   const fetchMeetings = useCallback(async () => {
@@ -317,35 +311,16 @@ export default function PlanningPage() {
     }
   }, []);
 
-  const fetchGoogleStatus = useCallback(async () => {
-    try {
-      const { data } = await api.get("/google/status");
-
-      setGoogleStatus({
-        connected: data?.connected || false,
-        email: data?.email || "",
-      });
-    } catch (error) {
-      console.error("Google status error:", error);
-      setGoogleStatus({
-        connected: false,
-        email: "",
-      });
-    }
-  }, []);
-
   const initializePage = useCallback(async () => {
     try {
       setLoading(true);
-      setGoogleLoading(true);
-      await Promise.all([fetchMeetings(), fetchGoogleStatus()]);
+      await fetchMeetings();
     } catch (error) {
       console.error("Planning init error:", error);
     } finally {
       setLoading(false);
-      setGoogleLoading(false);
     }
-  }, [fetchGoogleStatus, fetchMeetings]);
+  }, [fetchMeetings]);
 
   useEffect(() => {
     let cancelled = false;
@@ -373,15 +348,6 @@ export default function PlanningPage() {
       cancelled = true;
     };
   }, [initializePage, router]);
-
-  const connectGoogle = async () => {
-    try {
-      const { data } = await api.get("/google/auth-url");
-      if (data?.url) window.location.href = data.url;
-    } catch (error) {
-      alert("Failed to connect Google Calendar");
-    }
-  };
 
   const fetchAdminUsers = async () => {
     try {
@@ -824,15 +790,12 @@ export default function PlanningPage() {
     <>
       <div className="md:hidden">
         <MobilePlanningView
-          googleStatus={googleStatus}
-          googleLoading={googleLoading}
           loading={loading}
           workspaceLabel={userDisplayRole}
           calendarSubtitle={`${userDisplayRole} calendar`}
           monthLabel={periodLabel}
           calendarDays={calendarDays}
           mobileMonthMeetingDays={mobileMonthMeetingDays}
-          connectGoogle={connectGoogle}
           goHome={goHome}
           goToPrev={goToPrev}
           goToNext={goToNext}
@@ -841,7 +804,7 @@ export default function PlanningPage() {
           loggingOut={loggingOut}
         />
 
-        {googleStatus.connected && showForm && (
+        {showForm && (
           <MeetingModal
             formData={formData}
             adminUsers={adminUsers}
@@ -923,24 +886,14 @@ export default function PlanningPage() {
                 );
               })}
 
-              {googleStatus.connected ? (
-                <button
-                  type="button"
-                  onClick={handleOpenCreateModal}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-[8px] bg-gradient-to-r from-[#ff3b0d] to-[#ff6a18] px-4 font-[var(--font-primary)] text-[13px] font-semibold text-white shadow-[0_10px_20px_rgba(255,75,11,0.22)] sm:h-[42px] sm:px-5 sm:text-[14px]"
-                >
-                  <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                  New Meeting
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={connectGoogle}
-                  className="flex h-10 shrink-0 items-center gap-2 rounded-[8px] bg-[#071033] px-4 font-[var(--font-primary)] text-[13px] font-semibold text-white sm:h-[42px] sm:px-5 sm:text-[14px]"
-                >
-                  Connect Google
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleOpenCreateModal}
+                className="flex h-10 shrink-0 items-center gap-2 rounded-[8px] bg-gradient-to-r from-[#ff3b0d] to-[#ff6a18] px-4 font-[var(--font-primary)] text-[13px] font-semibold text-white shadow-[0_10px_20px_rgba(255,75,11,0.22)] sm:h-[42px] sm:px-5 sm:text-[14px]"
+              >
+                <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
+                New Meeting
+              </button>
             </div>
           </div>
 
@@ -952,10 +905,7 @@ export default function PlanningPage() {
             sortedMeetings={sortedMeetings}
             currentDate={currentDate}
             eventLegendItems={eventLegendItems}
-            googleLoading={googleLoading}
-            googleStatus={googleStatus}
             loading={loading}
-            connectGoogle={connectGoogle}
           />
         </section>
 
@@ -968,7 +918,7 @@ export default function PlanningPage() {
           </Typo>
         </footer>
 
-        {googleStatus.connected && showForm && (
+        {showForm && (
           <MeetingModal
             formData={formData}
             adminUsers={adminUsers}
@@ -989,15 +939,12 @@ export default function PlanningPage() {
 }
 
 function MobilePlanningView({
-  googleStatus,
-  googleLoading,
   loading,
   workspaceLabel,
   calendarSubtitle,
   monthLabel,
   calendarDays,
   mobileMonthMeetingDays,
-  connectGoogle,
   goHome,
   goToPrev,
   goToNext,
@@ -1048,24 +995,14 @@ function MobilePlanningView({
               </Typo>
             </div>
 
-            {googleStatus.connected ? (
-              <button
-                type="button"
-                onClick={handleOpenCreateModal}
-                className="flex min-h-[42px] cursor-pointer items-center justify-center gap-1.5 rounded-[12px] bg-gradient-to-r from-[#ff3d14] to-[#ff6a1c] px-3 py-2 text-[11px] font-semibold leading-tight text-white shadow-[0_10px_20px_rgba(255,90,31,0.22)] transition hover:scale-[1.01] active:scale-[0.98] sm:min-h-[46px] sm:rounded-[14px] sm:px-4 sm:text-sm"
-              >
-                <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
-                <span className="whitespace-nowrap">Create</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={connectGoogle}
-                className="flex min-h-[42px] cursor-pointer items-center justify-center rounded-[12px] bg-[#1f2340] px-3 py-2 text-[11px] font-semibold leading-tight text-white shadow-sm transition active:scale-[0.98]"
-              >
-                Connect
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleOpenCreateModal}
+              className="flex min-h-[42px] cursor-pointer items-center justify-center gap-1.5 rounded-[12px] bg-gradient-to-r from-[#ff3d14] to-[#ff6a1c] px-3 py-2 text-[11px] font-semibold leading-tight text-white shadow-[0_10px_20px_rgba(255,90,31,0.22)] transition hover:scale-[1.01] active:scale-[0.98] sm:min-h-[46px] sm:rounded-[14px] sm:px-4 sm:text-sm"
+            >
+              <Plus className="h-4 w-4 shrink-0 sm:h-5 sm:w-5" />
+              <span className="whitespace-nowrap">Create</span>
+            </button>
           </div>
 
           <div className="relative mt-4 overflow-hidden rounded-[16px] border border-[#ebe4ea] bg-[#f3f0f3] shadow-[0_10px_24px_rgba(0,0,0,0.05)] min-[360px]:mt-5 min-[360px]:rounded-[20px] sm:mt-6 sm:rounded-[24px]">
@@ -1191,37 +1128,7 @@ function MobilePlanningView({
                 );
               })}
 
-              {!googleLoading && !googleStatus.connected && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/35 backdrop-blur-[3px]">
-                  <div className="mx-2 w-full max-w-[280px] rounded-[18px] border border-[#ffd9cc] bg-white/95 p-3 text-center shadow-[0_12px_30px_rgba(0,0,0,0.08)] min-[360px]:mx-3 min-[360px]:max-w-[320px] min-[360px]:p-4 sm:rounded-[24px] sm:p-5">
-                    <Typo
-                      as="h5"
-                      variant="h4"
-                      className="!text-[15px] !font-bold !text-[#1f2340] min-[360px]:!text-[16px] sm:!text-[18px]"
-                    >
-                      Connect Google Calendar
-                    </Typo>
-
-                    <Typo
-                      variant="caption"
-                      className="mt-2 block !text-[11px] !text-[#7d7782] min-[360px]:!text-xs sm:!text-sm"
-                    >
-                      Connect your Google account to view calendar data and
-                      create meetings.
-                    </Typo>
-
-                    <button
-                      type="button"
-                      onClick={connectGoogle}
-                      className="mt-4 w-full cursor-pointer rounded-full bg-gradient-to-r from-[#ff3d14] to-[#ff6a1c] px-4 py-2.5 text-xs font-semibold text-white shadow-[0_10px_20px_rgba(255,90,31,0.22)] min-[360px]:text-sm sm:py-3"
-                    >
-                      Connect with Google
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {loading && googleStatus.connected && (
+              {loading && (
                 <div className="absolute inset-0 grid place-items-center bg-white/50 backdrop-blur-[2px]">
                   <Typo
                     variant="caption"
@@ -1234,8 +1141,7 @@ function MobilePlanningView({
             </div>
           </div>
 
-          {googleStatus.connected && (
-            <div className="mt-4 rounded-[18px] border border-[#ebe4ea] bg-white/70 p-3 shadow-[0_10px_24px_rgba(0,0,0,0.04)]">
+          <div className="mt-4 rounded-[18px] border border-[#ebe4ea] bg-white/70 p-3 shadow-[0_10px_24px_rgba(0,0,0,0.04)]">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <Typo
                   variant="body-sm"
@@ -1307,7 +1213,6 @@ function MobilePlanningView({
                 )}
               </div>
             </div>
-          )}
 
           <div className="mt-8 flex justify-center sm:mt-10">
             <button
@@ -1649,10 +1554,7 @@ function CalendarPanel({
   sortedMeetings,
   currentDate,
   eventLegendItems,
-  googleLoading,
-  googleStatus,
   loading,
-  connectGoogle,
 }) {
   return (
     <div className="relative overflow-hidden rounded-[12px] border border-[#e3e6ee] bg-white shadow-[0_14px_35px_rgba(15,23,42,0.045)]">
@@ -1673,37 +1575,7 @@ function CalendarPanel({
 
       {viewMode === "Agenda" && <AgendaView meetings={sortedMeetings} />}
 
-      {!googleLoading && !googleStatus.connected && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/55 px-3 backdrop-blur-[3px]">
-          <div className="w-full max-w-[360px] rounded-[18px] border border-[#ffd9cc] bg-white p-4 text-center shadow-[0_14px_35px_rgba(15,23,42,0.12)] sm:p-5">
-            <Typo
-              as="h3"
-              variant="h3"
-              className="!text-[18px] !font-bold !text-[#071033] sm:!text-[20px]"
-            >
-              Connect Google Calendar
-            </Typo>
-
-            <Typo
-              variant="body-sm"
-              className="mt-2 !leading-6 !text-[#626a82]"
-            >
-              Connect your Google account to view calendar data and create
-              meetings.
-            </Typo>
-
-            <button
-              type="button"
-              onClick={connectGoogle}
-              className="mt-5 h-[44px] w-full rounded-[10px] bg-gradient-to-r from-[#ff3b0d] to-[#ff6a18] font-[var(--font-primary)] text-[14px] font-bold text-white"
-            >
-              Connect with Google
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading && googleStatus.connected && (
+      {loading && (
         <div className="absolute inset-0 grid place-items-center bg-white/50">
           <Typo variant="body-sm" className="!font-bold !text-[#626a82]">
             Loading meetings...

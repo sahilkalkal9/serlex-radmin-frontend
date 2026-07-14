@@ -62,7 +62,7 @@ export default function UserManagementPage() {
     try {
       setLoading(true);
       const { data } = await api.get("/admin/users");
-      setUsers((data?.users || []).filter((u) => !["admin", "admin", "radmin"].includes(u.role)));
+      setUsers((data?.users || []).filter((u) => !["admin", "superadmin", "radmin"].includes(u.role)));
     } catch (error) {
       console.error("Admin users fetch error:", error);
       setUsers([]);
@@ -115,10 +115,10 @@ export default function UserManagementPage() {
         approved: users.filter((user) => user.status === "approved").length,
         pending: users.filter((user) => user.status === "pending").length,
         adminApproved: users.filter((user) => user.isApprovedByAdmin).length,
-        adminPending: users.filter((user) => !user.isApprovedByAdmin && !["admin", "admin", "radmin"].includes(user.role)).length,
+        adminPending: users.filter((user) => !user.isApprovedByAdmin && !["admin", "superadmin", "radmin"].includes(user.role)).length,
         executives: basePool.filter((u) => ["sales_user", "purchase_user", "ppc_user"].includes(u.role)).length,
         managers: basePool.filter((u) => u.role === "subadmin").length,
-        admins: 0,
+        admins: basePool.filter((u) => u.role === "radmin").length,
       };
     },
     [users, activeTab]
@@ -225,6 +225,7 @@ export default function UserManagementPage() {
             { key: "all", label: "All" },
             { key: "executives", label: "Executives" },
             { key: "managers", label: "Managers" },
+            { key: "admins", label: "Admins" },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -388,7 +389,7 @@ function UserAvatar({ user }) {
 }
 
 function AdminApprovalBadge({ approved, role }) {
-  if (["admin", "admin", "radmin"].includes(role)) {
+  if (["admin", "superadmin", "radmin"].includes(role)) {
     return <span className="inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold bg-[#eaf3ff] text-[#1677ff]">Self</span>;
   }
   return (
@@ -400,7 +401,7 @@ function AdminApprovalBadge({ approved, role }) {
 
 function ActionButtons({ user, currentUser, onUpdate, updating, onClearDevice }) {
   const isSelf = String(currentUser?.id || currentUser?._id || "") === String(user._id);
-  if (isSelf || ["admin", "admin", "radmin"].includes(user.role)) return null;
+  if (isSelf || ["admin", "superadmin", "radmin"].includes(user.role)) return null;
 
   const isInactive = user.status === "inactive";
 
@@ -609,8 +610,8 @@ function AddPersonModal({ open, onClose, onSuccess }) {
   };
 
   const isAdminRole = form.role === "radmin";
-  const isSubadminRole = form.role === "subadmin";
-  const showSubRole = isAdminRole || isSubadminRole;
+  const isManagerRole = form.role === "subadmin";
+  const showSubRole = isAdminRole || isManagerRole;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -673,11 +674,12 @@ function AddPersonModal({ open, onClose, onSuccess }) {
           <div>
             <label className="mb-1 block text-[10px] font-bold text-[#7a83a8]">Role *</label>
             <select value={form.role} onChange={handleChange("role")} className="h-11 w-full rounded-[8px] border border-[#e7e9f1] bg-white px-3 text-[12px] font-bold text-[#18205d] outline-none focus:border-[#ff4b0b]">
+              <option value="superadmin">Superadmin</option>
               <option value="radmin">Admin</option>
+              <option value="subadmin">Manager</option>
               <option value="sales_user">Sales User</option>
               <option value="purchase_user">Purchase User</option>
               <option value="ppc_user">PPC User</option>
-              <option value="subadmin">Subadmin / Manager</option>
             </select>
           </div>
           {showSubRole && (
@@ -692,7 +694,7 @@ function AddPersonModal({ open, onClose, onSuccess }) {
                     <option value="ppc_admin">PPC Admin</option>
                   </>
                 )}
-                {isSubadminRole && (
+                {isManagerRole && (
                   <>
                     <option value="sales_manager">Sales Manager</option>
                     <option value="po_manager">PO Manager</option>
